@@ -35,7 +35,7 @@ export const Header: React.FC<Props> = ({
 
     onSubmit({
       id: 0,
-      title,
+      title: title.trim(),
       userId: USER_ID,
       completed: false,
     }).then(() => setTitle(''));
