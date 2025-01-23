@@ -1,8 +1,8 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable jsx-a11y/control-has-associated-label */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { UserWarning } from './UserWarning';
-import { getTodos, USER_ID } from './api/todos';
+import * as todoServices from './api/todos';
 
 import { Todo } from './types/Todo';
 import { FilterType } from './types/FilterType';
@@ -19,11 +19,19 @@ export const App: React.FC = () => {
     ErrorType.ERROR_DEFAULT,
   );
   const [filterTodoBy, setFilterTodoBy] = useState<FilterType>(FilterType.ALL);
+  const [tempTodo, setTempTodo] = useState<Todo | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [deletedTodoId, setDeletedTodoId] = useState<number[] | null>(null);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  //#region loadTodos and filteredTodos
   useEffect(() => {
     const asyncFetch = async () => {
+      inputRef.current?.focus();
+
       try {
-        const loadTodos = await getTodos();
+        const loadTodos = await todoServices.getTodos();
 
         setTodos(loadTodos);
       } catch (error) {
@@ -48,8 +56,68 @@ export const App: React.FC = () => {
       return true;
     });
   }, [todos, filterTodoBy]);
+  //#endregion
 
-  if (!USER_ID) {
+  //#region addNewTodo
+  function addTodo({ id, userId, title, completed }: Todo) {
+    setErrorMessage(ErrorType.ERROR_DEFAULT);
+    setIsLoading(true);
+
+    const newTempTodo = { id, userId, title, completed };
+
+    setTempTodo(newTempTodo);
+
+    return todoServices
+      .createTodo({ title, userId, completed })
+      .then(newTodo => setTodos(currentTodo => [...currentTodo, newTodo]))
+      .catch(error => {
+        setErrorMessage(ErrorType.ERROR_ADD);
+
+        throw error;
+      })
+      .finally(() => {
+        setIsLoading(false);
+        setTempTodo(null);
+      });
+  }
+  //#endregion
+
+  //#region deleteTodo
+  function deleteTodo(todoId: number) {
+    setErrorMessage(ErrorType.ERROR_DEFAULT);
+    setIsLoading(true);
+
+    return todoServices
+      .deleteTodos(todoId)
+      .then(() => {
+        setTodos(currentTodo => currentTodo.filter(todo => todo.id !== todoId));
+      })
+      .catch(error => {
+        setErrorMessage(ErrorType.ERROR_DELETE);
+
+        throw error;
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }
+  //#endregion
+
+  //#region clearCompleted
+  function clearCompleted() {
+    const completedTodoId = todos
+      .filter(todo => todo.completed)
+      .map(todo => todo.id);
+
+    setDeletedTodoId(completedTodoId);
+
+    const deletionCompletedTodo = completedTodoId.map(id => deleteTodo(id));
+
+    Promise.all(deletionCompletedTodo);
+  }
+  //#endregion
+
+  if (!todoServices.USER_ID) {
     return <UserWarning />;
   }
 
@@ -58,9 +126,20 @@ export const App: React.FC = () => {
       <h1 className="todoapp__title">todos</h1>
 
       <div className="todoapp__content">
-        <Header />
+        <Header
+          inputRef={inputRef}
+          isLoading={isLoading}
+          setErrorMessage={setErrorMessage}
+          onSubmit={addTodo}
+        />
 
-        <TodoList filteredTodos={filteredTodos} />
+        <TodoList
+          filteredTodos={filteredTodos}
+          tempTodo={tempTodo}
+          isLoading={isLoading}
+          onDelete={deleteTodo}
+          deletedTodoId={deletedTodoId}
+        />
 
         {/* Hide the footer if there are no todos */}
         {todos.length > 0 && (
@@ -68,6 +147,7 @@ export const App: React.FC = () => {
             todos={todos}
             sortTodoBy={filterTodoBy}
             onClick={setFilterTodoBy}
+            clearCompleted={clearCompleted}
           />
         )}
       </div>
