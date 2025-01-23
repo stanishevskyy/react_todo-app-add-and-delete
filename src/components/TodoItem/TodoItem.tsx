@@ -18,6 +18,11 @@ export const TodoItem: React.FC<Props> = ({
   const { completed, title, id } = todo;
   const [deletedTodoId, setDeletedTodoId] = useState(0);
 
+  const handleClickBtn = () => {
+    onDelete(id);
+    setDeletedTodoId(id);
+  };
+
   return (
     <div
       data-cy="Todo"
@@ -39,10 +44,7 @@ export const TodoItem: React.FC<Props> = ({
         type="button"
         className="todo__remove"
         data-cy="TodoDelete"
-        onClick={() => {
-          onDelete(id);
-          setDeletedTodoId(id);
-        }}
+        onClick={handleClickBtn}
       >
         ×
       </button>

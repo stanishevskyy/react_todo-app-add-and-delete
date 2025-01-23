@@ -25,7 +25,6 @@ export const App: React.FC = () => {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  //#region loadTodos and filteredTodos
   useEffect(() => {
     const asyncFetch = async () => {
       inputRef.current?.focus();
@@ -56,10 +55,8 @@ export const App: React.FC = () => {
       return true;
     });
   }, [todos, filterTodoBy]);
-  //#endregion
 
-  //#region addNewTodo
-  function addTodo({ id, userId, title, completed }: Todo) {
+  const addTodo = ({ id, userId, title, completed }: Todo) => {
     setErrorMessage(ErrorType.ERROR_DEFAULT);
     setIsLoading(true);
 
@@ -79,11 +76,9 @@ export const App: React.FC = () => {
         setIsLoading(false);
         setTempTodo(null);
       });
-  }
-  //#endregion
+  };
 
-  //#region deleteTodo
-  function deleteTodo(todoId: number) {
+  const deleteTodo = (todoId: number) => {
     setErrorMessage(ErrorType.ERROR_DEFAULT);
     setIsLoading(true);
 
@@ -100,11 +95,9 @@ export const App: React.FC = () => {
       .finally(() => {
         setIsLoading(false);
       });
-  }
-  //#endregion
+  };
 
-  //#region clearCompleted
-  function clearCompleted() {
+  const clearCompleted = () => {
     const completedTodoId = todos
       .filter(todo => todo.completed)
       .map(todo => todo.id);
@@ -114,8 +107,7 @@ export const App: React.FC = () => {
     const deletionCompletedTodo = completedTodoId.map(id => deleteTodo(id));
 
     Promise.all(deletionCompletedTodo);
-  }
-  //#endregion
+  };
 
   if (!todoServices.USER_ID) {
     return <UserWarning />;
